@@ -1,72 +1,86 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "..fullname" . }}
+  creationTimestamp: null
   labels:
-    {{- include "..labels" . | nindent 4 }}
+    app: strapi
+  name: strapi
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
+  replicas: 1
   selector:
     matchLabels:
-      {{- include "..selectorLabels" . | nindent 6 }}
+      app: strapi
+  strategy: {}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      creationTimestamp: null
       labels:
-        {{- include "..labels" . | nindent 8 }}
-	{{- with .Values.podLabels }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
+        app: strapi
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      serviceAccountName: {{ include "..serviceAccountName" . }}
-      securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-        - name: {{ .Chart.Name }}
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
-              protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /
-              port: http
-          readinessProbe:
-            httpGet:
-              path: /
-              port: http
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-          {{- with .Values.volumeMounts }}
-          volumeMounts:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-      {{- with .Values.volumes }}
-      volumes:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      - image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        name: strapi
+        env:
+        - name: HOST
+          value: "0.0.0.0"
+        - name: PORT
+          value: "1337"
+        - name: APP_KEYS
+          valueFrom:
+            secretKeyRef:
+              name: strapi-secret
+              key: app-keys
+        - name: API_TOKEN_SALT
+          valueFrom:
+            secretKeyRef:
+              name: strapi-secret
+              key: api-token-salt
+        - name: ADMIN_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: strapi-secret
+              key: admin-jwt-secret
+        - name: TRANSFER_TOKEN_SALT
+          valueFrom:
+            secretKeyRef:
+              name: strapi-secret
+              key: transfert-token-salt
+        # Database
+        - name: DATABASE_CLIENT
+          value: "postgres"
+        - name: DATABASE_HOST
+          valueFrom:
+            secretKeyRef:
+              name: strapi-secret
+              key: database-host
+        - name: DATABASE_PORT
+          valueFrom:
+            secretKeyRef:
+              name: strapi-secret
+              key: database-port
+        - name: DATABASE_NAME
+          valueFrom:
+            secretKeyRef:
+              name: strapi-secret
+              key: database-name
+        - name: DATABASE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: strapi-secret
+              key: database-username
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: strapi-secret
+              key: database-password
+        - name: DATABASE_SSL
+          value: "false"  # ou "true" si SSL est utilisé
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: strapi-secret
+              key: jwt-secret
+        resources: {}
+        ports:
+        - containerPort: 1337
+status: {}
